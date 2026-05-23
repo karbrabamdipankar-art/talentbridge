@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TalentBridge — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sun:#FFB830; --mint:#2DD4A7; --sky:#38BDF8;
+    --coral:#FF7E6B; --lavender:#A78BFA;
+    --bg:#FFFDF5; --surface:#FFFFFF;
+    --text:#1A1A2E; --text-muted:#6B7280; --border:#F0E8D0;
+  }
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+  /* ── LOADING SCREEN ───────────────────────────────────── */
+  #loading-screen {
+    position:fixed; inset:0; z-index:9999;
+    background:linear-gradient(160deg,#1A1A2E 0%,#16213E 55%,#0F3460 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px;
+  }
+  .ls-logo { display:flex; align-items:center; gap:14px; animation:fadeDown .6s ease both; }
+  .ls-logo-icon {
+    width:64px; height:64px; border-radius:18px;
+    background:linear-gradient(135deg,var(--sun),var(--coral));
+    display:flex; align-items:center; justify-content:center; font-size:32px;
+    box-shadow:0 8px 28px rgba(255,184,48,.4);
+  }
+  .ls-logo-text { font-family:'Syne',sans-serif; font-size:32px; font-weight:800; color:#fff; }
+  .ls-logo-sub  { font-size:12px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:rgba(255,255,255,.4); }
+
+  .ls-spinner-wrap { position:relative; width:64px; height:64px; animation:fadeIn .5s .4s ease both; }
+  .ls-spinner {
+    width:64px; height:64px; border-radius:50%;
+    border:4px solid rgba(255,184,48,.2); border-top-color:var(--sun);
+    animation:spin .9s linear infinite;
+  }
+  .ls-spinner-inner {
+    position:absolute; inset:10px; border-radius:50%;
+    border:3px solid rgba(45,212,167,.2); border-bottom-color:var(--mint);
+    animation:spin .7s linear infinite reverse;
+  }
+
+  .ls-text-wrap { text-align:center; animation:fadeIn .5s .6s ease both; }
+  .ls-msg { font-size:16px; font-weight:700; color:rgba(255,255,255,.85); margin-bottom:6px; }
+  .ls-sub { font-size:12px; font-weight:600; color:rgba(255,255,255,.4); }
+
+  .ls-progress-track { width:280px; height:4px; background:rgba(255,255,255,.1); border-radius:2px; overflow:hidden; animation:fadeIn .5s .8s ease both; }
+  .ls-progress-fill  { height:100%; border-radius:2px; background:linear-gradient(90deg,var(--sun),var(--mint)); width:0%; transition:width .5s ease; }
+
+  .ls-steps { display:flex; flex-direction:column; gap:8px; animation:fadeIn .5s 1s ease both; }
+  .ls-step  { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:rgba(255,255,255,.3); transition:color .3s; }
+  .ls-step.active { color:rgba(255,255,255,.8); }
+  .ls-step.done   { color:var(--mint); }
+  .ls-step-dot { width:8px; height:8px; border-radius:50%; background:currentColor; flex-shrink:0; }
+  .ls-step.active .ls-step-dot { animation:pulse 1.2s infinite; }
+
+  .ls-error-box {
+    display:none; background:rgba(255,126,107,.12); border:1px solid rgba(255,126,107,.35);
+    border-radius:14px; padding:16px 20px; color:rgba(255,255,255,.85);
+    font-size:13px; font-weight:700; text-align:center; max-width:340px; line-height:1.6;
+  }
+  .ls-error-box .err-title { color:var(--coral); font-size:15px; margin-bottom:8px; }
+  .ls-error-box .err-hint  { font-size:11px; color:rgba(255,255,255,.5); margin-top:6px; font-weight:600; }
+  .ls-error-box .btn-retry {
+    display:inline-block; margin-top:12px;
+    background:rgba(255,126,107,.2); border:1px solid rgba(255,126,107,.5);
+    color:var(--coral); padding:7px 18px; border-radius:8px;
+    cursor:pointer; font-weight:800; font-size:12px; font-family:'Nunito',sans-serif;
+  }
+  .ls-error-box .btn-skip {
+    display:inline-block; margin-top:12px; margin-left:8px;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);
+    color:rgba(255,255,255,.6); padding:7px 18px; border-radius:8px;
+    cursor:pointer; font-weight:800; font-size:12px; font-family:'Nunito',sans-serif;
+  }
+
+  /* ── LOGIN CARD ───────────────────────────────────────── */
+  #login-screen {
+    display:none; min-height:100vh;
+    align-items:center; justify-content:center; padding:20px;
+  }
+  #login-screen.visible { display:flex; }
+
+  .login-card {
+    background:var(--surface); border-radius:24px; padding:40px;
+    box-shadow:0 24px 80px rgba(0,0,0,.12); border:2px solid var(--border);
+    width:100%; max-width:440px; animation:slideUp .4s ease;
+  }
+  .login-logo { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
+  .login-logo-icon {
+    width:48px; height:48px; border-radius:14px;
+    background:linear-gradient(135deg,var(--sun),var(--coral));
+    display:flex; align-items:center; justify-content:center; font-size:24px;
+    box-shadow:0 4px 14px rgba(255,184,48,.35);
+  }
+  .login-logo-text { font-family:'Syne',sans-serif; font-weight:800; font-size:20px; }
+  .login-logo-sub  { font-size:11px; font-weight:700; color:var(--text-muted); letter-spacing:1px; text-transform:uppercase; }
+  h2.login-title { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; margin-bottom:6px; }
+  p.login-sub    { font-size:14px; font-weight:600; color:var(--text-muted); margin-bottom:24px; }
+
+  .sync-badge {
+    display:flex; align-items:center; gap:8px; margin-bottom:20px;
+    padding:8px 12px; border-radius:10px; font-size:12px; font-weight:700;
+    background:rgba(45,212,167,.08); border:1px solid rgba(45,212,167,.2); color:#065F46;
+  }
+  .sync-badge.warn { background:rgba(255,184,48,.08); border-color:rgba(255,184,48,.3); color:#92400E; }
+  .sync-badge.fail { background:rgba(255,126,107,.08); border-color:rgba(255,126,107,.3); color:#991B1B; }
+
+  .form-group { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+  label { font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.8px; }
+  .input-wrap { position:relative; }
+  .input-wrap input {
+    width:100%; padding:12px 44px 12px 16px;
+    border:2px solid var(--border); border-radius:12px;
+    font-family:'Nunito',sans-serif; font-size:14px; font-weight:700;
+    color:var(--text); background:var(--bg); outline:none; transition:border-color .15s;
+  }
+  .input-wrap input:focus { border-color:var(--sun); background:#fff; }
+  .input-wrap .eye { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:16px; cursor:pointer; user-select:none; }
+
+  .btn-login {
+    width:100%; padding:13px; border-radius:14px; border:none;
+    background:linear-gradient(135deg,var(--sun),var(--coral));
+    color:#fff; font-family:'Nunito',sans-serif; font-weight:900; font-size:16px;
+    cursor:pointer; transition:all .2s; margin-top:6px;
+    box-shadow:0 4px 16px rgba(255,126,107,.3);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn-login:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 24px rgba(255,126,107,.4); }
+  .btn-login:disabled { opacity:.6; cursor:not-allowed; }
+
+  .login-err {
+    display:none; margin-top:12px; padding:10px 14px;
+    background:rgba(255,126,107,.1); border:2px solid rgba(255,126,107,.3);
+    border-radius:12px; color:#DC2626; font-size:13px; font-weight:700;
+    animation:shake .4s ease;
+  }
+  .login-footer { text-align:center; margin-top:20px; font-size:12px; font-weight:700; color:var(--text-muted); }
+
+  @keyframes spin     { to { transform:rotate(360deg); } }
+  @keyframes fadeIn   { from { opacity:0; } to { opacity:1; } }
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes slideUp  { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes shake    { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.3} }
+</style>
+</head>
+<body>
+
+<!-- ── LOADING SCREEN ── -->
+<div id="loading-screen">
+  <div class="ls-logo">
+    <div class="ls-logo-icon">🚀</div>
+    <div>
+      <div class="ls-logo-text">TalentBridge</div>
+      <div class="ls-logo-sub">Placement Management Suite</div>
+    </div>
+  </div>
+
+  <div class="ls-spinner-wrap">
+    <div class="ls-spinner"></div>
+    <div class="ls-spinner-inner"></div>
+  </div>
+
+  <div class="ls-text-wrap">
+    <div class="ls-msg" id="ls-msg">Connecting to server…</div>
+    <div class="ls-sub" id="ls-sub">Please wait</div>
+  </div>
+
+  <div class="ls-progress-track">
+    <div class="ls-progress-fill" id="ls-progress"></div>
+  </div>
+
+  <div class="ls-steps">
+    <div class="ls-step" id="step-connect"><div class="ls-step-dot"></div>Checking configuration</div>
+    <div class="ls-step" id="step-auth">   <div class="ls-step-dot"></div>Reaching Google Sheets server</div>
+    <div class="ls-step" id="step-data">   <div class="ls-step-dot"></div>Loading candidate &amp; company data</div>
+    <div class="ls-step" id="step-ready">  <div class="ls-step-dot"></div>Preparing workspace</div>
+  </div>
+
+  <div class="ls-error-box" id="ls-error-box">
+    <div class="err-title" id="err-title">⚠️ Could not reach server</div>
+    <div id="err-detail">Check your internet connection and try again.</div>
+    <div class="err-hint" id="err-hint"></div>
+    <br>
+    <button class="btn-retry" onclick="retrySync()">↩ Retry</button>
+    <button class="btn-skip"  onclick="skipToLogin()">Continue offline →</button>
+  </div>
+</div>
+
+<!-- ── LOGIN SCREEN ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">🚀</div>
+      <div>
+        <div class="login-logo-text">TalentBridge</div>
+        <div class="login-logo-sub">Placement Suite</div>
+      </div>
+    </div>
+
+    <h2 class="login-title">Welcome back! 👋</h2>
+    <p class="login-sub">Sign in to your placement dashboard</p>
+
+    <div class="sync-badge" id="sync-badge">
+      <span id="sync-badge-icon">✅</span>
+      <span id="sync-badge-text">Live data synced from Google Sheets</span>
+    </div>
+
+    <div class="form-group">
+      <label>Username</label>
+      <div class="input-wrap">
+        <input type="text" id="login-username" placeholder="admin"
+               autocomplete="username"
+               onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
+        <span class="eye">👤</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Password</label>
+      <div class="input-wrap">
+        <input type="password" id="login-password" placeholder="••••••••"
+               autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')doLogin()">
+        <span class="eye" id="pwd-eye" onclick="togglePwd()" style="cursor:pointer">👁️</span>
+      </div>
+    </div>
+
+    <button class="btn-login" id="login-btn" onclick="doLogin()">
+      <span id="login-btn-text">Sign In</span>
+      <span id="login-btn-icon">→</span>
+    </button>
+
+    <div class="login-err" id="login-err"></div>
+
+    <div class="login-footer">Secured · Multi-user · Google Sheets powered</div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/session.js"></script>
+<script>
+'use strict';
+
+// ── HELPERS ───────────────────────────────────────────────
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+var progressEl = document.getElementById('ls-progress');
+var stepEls    = {
+  connect: document.getElementById('step-connect'),
+  auth:    document.getElementById('step-auth'),
+  data:    document.getElementById('step-data'),
+  ready:   document.getElementById('step-ready'),
+};
+
+function setStep(id, state) { stepEls[id].className = 'ls-step ' + state; }
+function setProgress(p)     { progressEl.style.width = p + '%'; }
+function setMsg(m, s) {
+  document.getElementById('ls-msg').textContent = m;
+  document.getElementById('ls-sub').textContent = s || '';
+}
+function showError(title, detail, hint) {
+  document.getElementById('err-title').textContent  = title  || '⚠️ Connection failed';
+  document.getElementById('err-detail').textContent = detail || '';
+  document.getElementById('err-hint').textContent   = hint   || '';
+  document.getElementById('ls-error-box').style.display = 'block';
+}
+
+// ── TRANSITION: loading → login ───────────────────────────
+function showLogin(syncState) {
+  // syncState: 'ok' | 'cached' | 'failed'
+  var badge = document.getElementById('sync-badge');
+  var icon  = document.getElementById('sync-badge-icon');
+  var text  = document.getElementById('sync-badge-text');
+
+  if (syncState === 'ok') {
+    badge.className = 'sync-badge';
+    icon.textContent = '✅';
+    text.textContent = 'Live data synced — ' + new Date().toLocaleTimeString();
+  } else if (syncState === 'cached') {
+    badge.className = 'sync-badge warn';
+    icon.textContent = '⚠️';
+    text.textContent = 'Offline mode — showing cached data';
+  } else {
+    badge.className = 'sync-badge fail';
+    icon.textContent = '❌';
+    text.textContent = 'Could not reach server — some features limited';
+  }
+
+  // Hide loading, show login
+  var ls = document.getElementById('loading-screen');
+  ls.style.transition = 'opacity .35s ease';
+  ls.style.opacity    = '0';
+  setTimeout(function() {
+    ls.style.display = 'none';
+    var login = document.getElementById('login-screen');
+    login.classList.add('visible');
+    document.getElementById('login-username').focus();
+  }, 380);
+}
+
+// ── STARTUP SYNC ──────────────────────────────────────────
+async function startupSync() {
+
+  // Step 1 — Check config
+  setStep('connect', 'active');
+  setMsg('Checking configuration…', 'Verifying Apps Script URL');
+  setProgress(8);
+  await delay(300);
+
+  var url = window.TB_CONFIG && window.TB_CONFIG.scriptUrl;
+  if (!url || url === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    setStep('connect', 'active');
+    setProgress(15);
+    showError(
+      '⚙️ Script URL not configured',
+      'Open js/config.js and paste your Google Apps Script Web App URL.',
+      'It looks like: https://script.google.com/macros/s/AKfy.../exec'
+    );
+    return; // stay on loading screen — user must fix config
+  }
+  setStep('connect', 'done');
+  setProgress(25);
+
+  // Step 2 — Reach the server
+  setStep('auth', 'active');
+  setMsg('Connecting to Google Sheets…', 'This may take a few seconds on first load');
+  setProgress(35);
+
+  try {
+    // First, send a lightweight ping to confirm the URL is alive
+    var pingRes = await API.ping();
+    if (!pingRes || !pingRes.ok) throw new Error('Ping failed: ' + (pingRes && pingRes.msg));
+    setStep('auth', 'done');
+    setProgress(55);
+
+    // Step 3 — Load all data
+    setStep('data', 'active');
+    setMsg('Loading data…', 'Syncing candidates, companies & interviews');
+    setProgress(65);
+
+    var res = await API.Sync.all();
+    if (!res || !res.ok) throw new Error(res && res.msg ? res.msg : 'syncAll returned not-ok');
+
+    Store.setAll(res);
+    setStep('data', 'done');
+    setProgress(88);
+
+    // Step 4 — Finalise
+    setStep('ready', 'active');
+    setMsg('Almost ready!', 'Preparing your workspace');
+    setProgress(96);
+    await delay(350);
+
+    setStep('ready', 'done');
+    setProgress(100);
+    setMsg('All set! 🎉', 'Synced successfully');
+    await delay(400);
+
+    showLogin('ok');
+
+  } catch(err) {
+    // ── Try local cache ─────────────────────────────────
+    var cacheOk = Store.load();
+    if (cacheOk) {
+      setStep('auth', 'done');
+      setStep('data', 'done');
+      setProgress(90);
+      setMsg('Using cached data', 'Server unreachable — offline mode active');
+      await delay(600);
+      showLogin('cached');
+    } else {
+      // No cache, no server — show error but still let them try to log in
+      setProgress(30);
+      showError(
+        '⚠️ Could not reach server',
+        err.message,
+        'Make sure your Apps Script is deployed as "Anyone" access and the URL in config.js is correct.'
+      );
+      // Don't auto-advance — user clicks Retry or "Continue offline"
+    }
+  }
+}
+
+function retrySync() {
+  // Reset UI and try again
+  document.getElementById('ls-error-box').style.display = 'none';
+  Object.keys(stepEls).forEach(function(k) { stepEls[k].className = 'ls-step'; });
+  setProgress(0);
+  setMsg('Connecting to server…', 'Please wait');
+  startupSync();
+}
+
+function skipToLogin() {
+  showLogin('failed');
+}
+
+// ── LOGIN ─────────────────────────────────────────────────
+async function doLogin() {
+  var username = (document.getElementById('login-username').value || '').trim();
+  var password = document.getElementById('login-password').value || '';
+  var errEl    = document.getElementById('login-err');
+  var btn      = document.getElementById('login-btn');
+
+  errEl.style.display = 'none';
+  if (!username || !password) { showLoginErr('Please enter your username and password.'); return; }
+
+  btn.disabled = true;
+  document.getElementById('login-btn-text').textContent = 'Signing in…';
+  document.getElementById('login-btn-icon').textContent = '⏳';
+
+  try {
+    var res = await API.Auth.login(username, password);
+
+    if (!res || !res.ok) {
+      resetLoginBtn();
+      showLoginErr(res && res.msg ? res.msg : 'Invalid credentials. Please try again.');
+      return;
+    }
+
+    // Save session
+    var timeoutMins = (Store.get('settings') && Store.get('settings').sessionTimeoutMinutes)
+                      ? parseInt(Store.get('settings').sessionTimeoutMinutes) : 60;
+    Session.set(res, timeoutMins);
+    window.location.href = 'dashboard';
+
+  } catch(e) {
+    resetLoginBtn();
+    // Offline fallback — only works for admin with default credentials if cache has settings
+    var settings = Store.get('settings') || {};
+    var adminUser = settings.adminUsername || 'admin';
+    if (username === adminUser) {
+      showLoginErr('Cannot reach server to verify credentials. Check your connection and try again.');
+    } else {
+      showLoginErr('Cannot reach server. ' + e.message);
+    }
+  }
+}
+
+function showLoginErr(msg) {
+  var el = document.getElementById('login-err');
+  el.textContent = '⚠️  ' + msg;
+  el.style.display = 'block';
+}
+function resetLoginBtn() {
+  var btn = document.getElementById('login-btn');
+  btn.disabled = false;
+  document.getElementById('login-btn-text').textContent = 'Sign In';
+  document.getElementById('login-btn-icon').textContent = '→';
+}
+function togglePwd() {
+  var inp = document.getElementById('login-password');
+  var eye = document.getElementById('pwd-eye');
+  if (inp.type === 'password') { inp.type = 'text';     eye.textContent = '🙈'; }
+  else                         { inp.type = 'password'; eye.textContent = '👁️'; }
+}
+
+// ── BOOT ──────────────────────────────────────────────────
+if (Session.isAuthenticated()) {
+  window.location.href = 'dashboard';
+} else {
+  startupSync();
+}
+</script>
+</body>
+</html>
