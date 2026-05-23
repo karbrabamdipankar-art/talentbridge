@@ -11,7 +11,7 @@ window.TB_CONFIG = {
   // ── STEP 1: Paste your Apps Script Web App URL here ───────
   // It looks like:
   // https://script.google.com/macros/s/AKfycb.../exec
-  scriptUrl: 'https://script.google.com/macros/s/AKfycbzsi4sfKhPRqhyyw8wyJpFrJQC2Eontue6eGr3epA_snJvJNkGd35CuH8l3JnU53TOAIw/exec',
+  scriptUrl: 'https://script.google.com/macros/s/AKfycbzuvgSzzNw8VDZRv_DRhfdu5iyqK-cTbKEuqeHLfp6HwuyVIT3XAsDGhVuyNYPxSgWbyw/exec',
 
   // ── App metadata ──────────────────────────────────────────
   appName:    'TalentBridge',
